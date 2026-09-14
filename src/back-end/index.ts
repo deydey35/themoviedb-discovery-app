@@ -35,6 +35,11 @@ app.get('/api/movies/popular', async (_req: express.Request, res: express.Respon
   }
 });
 
+// Define a route handler for health check endpoint
+app.get('/api/health', (_req: express.Request, res: express.Response) => {
+  const response: { status: string } = { status: 'ok' };
+  res.json(response);
+});
 
 // Define a route handler for fetching popular movies from TMDB API
 app.get('/api/movies/popular', async (_req: express.Request, res: express.Response) => {
