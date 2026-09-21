@@ -1,7 +1,7 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
-  "files": [],
-  "references": [{ "path": "./tsconfig.backend.json" }],
+   "files": [],
+  "references": [{ "path": "./tsconfig.backend.json" }, { "path": "./tsconfig.frontend.json" }],
   "compilerOptions": {
     // File Layout
     // "rootDir": "./src",
