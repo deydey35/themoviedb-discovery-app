@@ -42,7 +42,8 @@ app.get(
 
       const data = await response.json();
       res.json(data);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching popular movies:', error);
       res.status(500).json({ error: 'Failed to fetch popular movies' });
     }
   },
@@ -82,7 +83,8 @@ app.get(
 
       // Send the transformed data as a JSON response
       res.json(data);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching popular movies:', error);
       res.status(500).json({ error: 'Failed to fetch popular movies' });
     }
   },
