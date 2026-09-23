@@ -1,7 +1,10 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "files": [],
-  "references": [{ "path": "./tsconfig.backend.json" }],
+  "references": [
+    { "path": "./tsconfig.backend.json" },
+    { "path": "./tsconfig.frontend.json" }
+  ],
   "compilerOptions": {
     // File Layout
     // "rootDir": "./src",
@@ -41,6 +44,6 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }
