@@ -20,12 +20,14 @@ export default function App() {
     : 'Popular Movies';
 
   useEffect(() => {
-    fetch(`/api/movies/popular?language=${language}&page=${page}&region=${region}`)
+    fetch(
+      `/api/movies/popular?language=${language}&page=${page}&region=${region}`,
+    )
       .then((response) => response.json())
       .then((data) => {
         setMovies(data.results);
       });
-  }, []);
+  }, [language, page, region]);
 
   return (
     <main className="app-shell">
