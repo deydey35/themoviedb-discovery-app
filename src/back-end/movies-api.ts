@@ -1,11 +1,12 @@
 import type { Express } from 'express';
 import express from 'express';
 import { tmdbAccessToken } from './config';
-import { toSupportedMovie } from './utils';
+import { toSupportedMovie, toSupportedMovieDetails } from './utils';
 import type {
   MoviesApiResponse,
+  TmdbMovieDetailsRawResponse,
   TmdbMoviesRawResponse,
-} from './schemas/MoviesTypes';
+} from './MoviesTypes';
 import { DEFAULT_LANGUAGE, DEFAULT_PAGE, DEFAULT_REGION } from './constants';
 
 export function registerMoviesApi(app: Express): void {
@@ -52,6 +53,42 @@ export function registerMoviesApi(app: Express): void {
         res.json(data);
       } catch {
         res.status(500).json({ error: 'Failed to fetch popular movies' });
+      }
+    },
+  );
+
+  app.get(
+    '/api/movies/:id',
+    async (_req: express.Request, res: express.Response) => {
+      try {
+        const queryParams = new URLSearchParams();
+        const { language } = _req.query;
+        const movieId = _req.params.id as string;
+
+        queryParams.append(
+          'language',
+          (language as string) || DEFAULT_LANGUAGE,
+        );
+
+        const response = await fetch(
+          `https://api.themoviedb.org/3/movie/${encodeURIComponent(movieId)}?${queryParams.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${tmdbAccessToken}`,
+              'Content-Type': 'application/json;charset=utf-8',
+            },
+          },
+        );
+        if (!response.ok) {
+          throw new Error(
+            `TMDB API request failed with status ${response.status}`,
+          );
+        }
+
+        const rawData = (await response.json()) as TmdbMovieDetailsRawResponse;
+        res.json(toSupportedMovieDetails(rawData));
+      } catch {
+        res.status(500).json({ error: 'Failed to fetch movie details' });
       }
     },
   );
