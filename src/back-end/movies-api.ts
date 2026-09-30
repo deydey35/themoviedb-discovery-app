@@ -6,7 +6,7 @@ import type {
   MoviesApiResponse,
   TmdbMovieDetailsRawResponse,
   TmdbMoviesRawResponse,
-} from './MoviesTypes';
+} from './schemas/MoviesTypes';
 import { DEFAULT_LANGUAGE, DEFAULT_PAGE, DEFAULT_REGION } from './constants';
 
 export function registerMoviesApi(app: Express): void {
