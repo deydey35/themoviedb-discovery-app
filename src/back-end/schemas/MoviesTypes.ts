@@ -6,6 +6,13 @@ export type TmdbMoviesRawResponse = {
   total_results: number;
 };
 
+export type TmdbMovieDetailsRawResponse = Omit<TmdbMovie, 'genre_ids'> & {
+  genres: Array<{
+    id: number;
+    name: string;
+  }>;
+};
+
 // TypeScript type for the raw response from the TMDB API for popular movies.
 export type TmdbMovie = {
   adult: boolean;
