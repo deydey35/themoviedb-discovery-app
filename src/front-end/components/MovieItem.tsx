@@ -1,5 +1,5 @@
-import type { Movie } from "../../back-end/schemas/MoviesTypes";
-import { Link } from "react-router";
+import type { Movie } from '../../back-end/schemas/MoviesTypes';
+import { Link } from 'react-router';
 
 type MovieItemProps = {
   movie: Movie;
@@ -7,13 +7,23 @@ type MovieItemProps = {
 
 export default function MovieItem({ movie }: MovieItemProps) {
   const releaseYear = movie.release_date.slice(0, 4);
-  const posterUrl = movie.poster_path ? `https://image.tmdb.org/t/p/w185${movie.poster_path}` : null;
+  const posterUrl = movie.poster_path
+    ? `https://image.tmdb.org/t/p/w185${movie.poster_path}`
+    : null;
   const rating = movie.vote_average.toFixed(1);
 
   return (
     <Link to={`/movies/${movie.id}`} className="movie-card-link">
       <div className="movie-card">
-        {posterUrl ? <img className="movie-poster" src={posterUrl} alt={`Affiche de ${movie.title}`} /> : <div />}
+        {posterUrl ? (
+          <img
+            className="movie-poster"
+            src={posterUrl}
+            alt={`Affiche de ${movie.title}`}
+          />
+        ) : (
+          <div />
+        )}
         <div className="movie-card__content">
           <h2>{movie.title}</h2>
           <p>
