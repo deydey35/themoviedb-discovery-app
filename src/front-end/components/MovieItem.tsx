@@ -1,4 +1,4 @@
-import type { Movie } from '../../back-end/schemas/MoviesTypes';
+import type { Movie } from '../../back-end/MoviesTypes';
 
 type MovieItemProps = {
   movie: Movie;
