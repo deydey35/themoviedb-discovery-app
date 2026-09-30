@@ -2,7 +2,7 @@ import type {
   Movie,
   TmdbMovieDetailsRawResponse,
   TmdbMoviesRawResponse,
-} from './MoviesTypes';
+} from './schemas/MoviesTypes';
 
 /**
  * Transforms a TmdbMovie object into a supported Movie object by omitting the 'adult' and 'video' properties.
