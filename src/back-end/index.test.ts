@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { fetchMock, getMock, listenMock } = vi.hoisted(() => ({
   fetchMock: vi.fn(),
   getMock: vi.fn(),
-  listenMock: vi.fn(),
+  listenMock: vi.fn((_port: number, callback?: () => void) => {
+    callback?.();
+  }),
 }));
 
 vi.mock('express', () => ({
