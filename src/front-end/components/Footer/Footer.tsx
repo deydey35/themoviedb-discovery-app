@@ -1,11 +1,14 @@
 import './Footer.css';
 
+declare const __APP_VERSION__: string;
+
 export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer__content">
         <p className="footer__copyright">
-          © {new Date().getFullYear()} TMDB Discovery
+          TMDB Discovery · Version{' '}
+          {__APP_VERSION__}
         </p>
         <ul className="footer__links">
           <li>
