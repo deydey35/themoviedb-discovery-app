@@ -7,8 +7,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer__content">
         <p className="footer__copyright">
-          TMDB Discovery · Version{' '}
-          {__APP_VERSION__}
+          TMDB Discovery · Version {__APP_VERSION__}
         </p>
         <ul className="footer__links">
           <li>

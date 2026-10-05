@@ -15,5 +15,15 @@ export default defineConfig({
   },
   test: {
     include: ['src/back-end/**/*.test.ts'],
+    coverage: {
+      include: ['src/back-end/**/*.ts'],
+      exclude: ['src/back-end/**/*.test.ts', 'src/back-end/schemas/**'],
+      thresholds: {
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100,
+      },
+    },
   },
 });
