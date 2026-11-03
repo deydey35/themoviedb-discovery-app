@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
+  deleteUnusedGenres,
   findGenreById,
   listGenres,
   type Genre,
@@ -94,6 +95,23 @@ describe('genre repository', () => {
       ]),
     ).toThrow();
     expect(listGenres(database)).toEqual([]);
+    database.close();
+  });
+
+  it('rejects malformed rows and rolls back cleanup errors', () => {
+    // Arrange
+    const database = createDatabase();
+    database.exec(`
+      DROP TABLE movie_genres;
+      DROP TABLE genres;
+      CREATE TABLE genres (id TEXT, name INTEGER);
+      INSERT INTO genres (id, name) VALUES ('invalid', 10);
+    `);
+
+    // Act and assert
+    expect(() => listGenres(database)).toThrow('Invalid genre row');
+    expect(() => deleteUnusedGenres(database)).toThrow();
+    expect(() => database.exec('ROLLBACK')).toThrow();
     database.close();
   });
 });
