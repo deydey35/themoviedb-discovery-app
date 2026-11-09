@@ -18,6 +18,7 @@ const movie = {
     { id: 1, name: 'Drama' },
     { id: 2, name: 'Mystery' },
   ],
+  production_countries: [{ iso_3166_1: 'FR', name: 'France' }],
   overview: 'An example movie summary.',
 } as MovieDetails;
 
@@ -44,6 +45,10 @@ describe('MovieDetailCard', () => {
     expect(screen.getByText('7.5')).toBeTruthy();
     expect(screen.getByText('Drama')).toBeTruthy();
     expect(screen.getByText('Mystery')).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Pays de production' }),
+    ).toBeTruthy();
+    expect(screen.getByText('France')).toBeTruthy();
     expect(screen.getByText(movie.overview)).toBeTruthy();
   });
 
@@ -54,6 +59,7 @@ describe('MovieDetailCard', () => {
       poster_path: null,
       tagline: '',
       genres: [],
+      production_countries: [],
     } as MovieDetails;
 
     // Act

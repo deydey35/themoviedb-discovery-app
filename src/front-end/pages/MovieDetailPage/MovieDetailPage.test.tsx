@@ -20,6 +20,7 @@ const movie = {
   poster_path: '/example-poster.jpg',
   tagline: 'An example tagline',
   genres: [{ id: 1, name: 'Drama' }],
+  production_countries: [{ iso_3166_1: 'FR', name: 'France' }],
   overview: 'An example movie summary.',
 } as MovieDetails;
 

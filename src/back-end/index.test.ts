@@ -17,6 +17,10 @@ vi.mock('./utils/config', () => ({
   tmdbAccessToken: 'test-access-token',
 }));
 
+vi.mock('./database/schema', () => ({
+  openDatabase: vi.fn(() => ({})),
+}));
+
 // Import the code under test after setting up the mocks
 import './index';
 

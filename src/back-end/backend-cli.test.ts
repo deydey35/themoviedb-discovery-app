@@ -2,11 +2,16 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultDatabasePath, runCli } from './backend-cli';
 import { openDatabase } from './database/schema';
 
 describe('backend CLI', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
   it('initializes the default database path', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'movies-cli-'));
     const path = join(directory, 'movies.sqlite');
@@ -63,6 +68,47 @@ describe('backend CLI', () => {
     ]);
     expect(log).toHaveBeenCalledWith(
       `Imported 2 genre(s) into ${databasePath}`,
+    );
+    database.close();
+    log.mockRestore();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  it('synchronizes countries from TMDB into a selected database', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'movies-cli-'));
+    const databasePath = join(directory, 'custom.sqlite');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [
+        { iso_3166_1: 'FR', english_name: 'France' },
+        { iso_3166_1: 'US', english_name: 'United States' },
+      ],
+    });
+    vi.stubEnv('TMDB_ACCESS_TOKEN', 'test-access-token');
+    vi.stubGlobal('fetch', fetchMock);
+
+    await runCli([
+      'node',
+      'backend-cli',
+      '--path',
+      databasePath,
+      'sync-countries',
+    ]);
+
+    const database = new DatabaseSync(databasePath);
+    expect(
+      database
+        .prepare('SELECT code, name FROM production_countries ORDER BY code')
+        .all(),
+    ).toEqual([
+      { code: 'FR', name: 'France' },
+      { code: 'US', name: 'United States' },
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(log).toHaveBeenCalledWith(
+      `Synchronized 2 country/countries into ${databasePath}`,
     );
     database.close();
     log.mockRestore();

@@ -1,4 +1,5 @@
 import type { Express, Request, RequestHandler, Response } from 'express';
+import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_LANGUAGE,
@@ -12,6 +13,7 @@ import type {
   TmdbMovieDetails,
   TmdbMoviesRawResponse,
 } from '../types/MoviesTypes';
+import { initializeSchema } from '../database/schema';
 
 const { toSupportedMovieMock, toSupportedMovieDetailsMock } = vi.hoisted(
   () => ({
@@ -36,6 +38,7 @@ type RouteHandler = (
 ) => void | Promise<void>;
 
 const handlers = new Map<string, RequestHandler>();
+let database: DatabaseSync;
 const app = {
   get: (path: string, handler: RequestHandler) => handlers.set(path, handler),
 } as unknown as Express;
@@ -66,7 +69,9 @@ function tmdbResponse(data: unknown, ok = true, status = 200) {
 describe('movies API', () => {
   beforeEach(() => {
     handlers.clear();
-    registerMoviesApi(app);
+    database = new DatabaseSync(':memory:');
+    initializeSchema(database);
+    registerMoviesApi(app, database);
     toSupportedMovieMock.mockReset();
     toSupportedMovieDetailsMock.mockReset();
     vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -76,6 +81,7 @@ describe('movies API', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    database.close();
   });
 
   describe('GET /api/movies/popular', () => {
@@ -164,7 +170,21 @@ describe('movies API', () => {
     it('returns movie details', async () => {
       // Arrange
       const rawData = { id: 42 } as unknown as TmdbMovieDetails;
-      const supportedDetails = { id: 42, title: 'Movie details' };
+      const supportedDetails = {
+        id: 42,
+        title: 'Movie details',
+        original_title: 'Original title',
+        overview: 'Overview',
+        release_date: '2024-01-01',
+        original_language: 'en',
+        poster_path: null,
+        backdrop_path: null,
+        vote_average: 7,
+        vote_count: 10,
+        genres: [],
+        production_countries: [{ iso_3166_1: 'FR', name: 'France' }],
+        tagline: null,
+      };
       const fetchMock = vi.fn().mockResolvedValueOnce(tmdbResponse(rawData));
       vi.stubGlobal('fetch', fetchMock);
       toSupportedMovieDetailsMock.mockReturnValue(supportedDetails);
@@ -188,6 +208,16 @@ describe('movies API', () => {
       );
       expect(toSupportedMovieDetailsMock).toHaveBeenCalledWith(rawData);
       expect(response.json).toHaveBeenCalledWith(supportedDetails);
+      expect(
+        database.prepare('SELECT code, name FROM production_countries').all(),
+      ).toEqual([{ code: 'FR', name: 'France' }]);
+      expect(
+        database
+          .prepare(
+            'SELECT movie_id, country_code FROM movie_production_countries',
+          )
+          .all(),
+      ).toEqual([{ movie_id: 42, country_code: 'FR' }]);
     });
 
     it('returns errors for unsuccessful and rejected movie detail requests', async () => {

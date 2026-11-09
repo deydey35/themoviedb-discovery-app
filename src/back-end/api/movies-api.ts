@@ -1,5 +1,7 @@
 import type { Express } from 'express';
 import express from 'express';
+import type { DatabaseSync } from 'node:sqlite';
+import { syncMovieProductionCountries } from '../database/movie-country-repository';
 import { createMovieQueryParams } from '../utils/movie-query-params';
 import { toSupportedMovie, toSupportedMovieDetails } from '../utils/converter';
 import { tmdbAccessToken } from '../utils/config';
@@ -16,7 +18,7 @@ export { createMovieQueryParams } from '../utils/movie-query-params';
  * Registers the movies API routes (popular movies and movie details) on the given Express application instance.
  * @param app - The Express application instance to register the movies API routes on.
  */
-export function registerMoviesApi(app: Express): void {
+export function registerMoviesApi(app: Express, database: DatabaseSync): void {
   // Define a route handler for fetching popular movies from TMDB API
   app.get(
     '/api/movies/popular',
@@ -98,6 +100,7 @@ export function registerMoviesApi(app: Express): void {
 
         // Transform the raw data into the supported format for our application
         const data: MovieDetails = toSupportedMovieDetails(rawData);
+        syncMovieProductionCountries(database, data);
 
         // Send the transformed data as a JSON response
         res.json(data);
