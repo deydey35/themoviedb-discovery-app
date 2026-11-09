@@ -56,6 +56,17 @@ node src/back-end/backend-cli.ts clean-genres
 
 La commande `clean-genres` supprime uniquement les genres qui ne sont associés à aucun film.
 
+## Gestion des pays
+
+Synchronisez le référentiel des pays depuis TMDB dans `production_countries` :
+
+```sh
+node src/back-end/backend-cli.ts sync-countries
+node src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite sync-countries
+```
+
+Cette commande utilise le jeton TMDB du fichier `.env`; aucun CSV de pays n'est nécessaire.
+
 ## API locale
 
 | Méthode | Route                 | Description                                                       |

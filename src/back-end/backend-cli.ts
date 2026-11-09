@@ -5,6 +5,8 @@ import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 import { parseGenresCsv } from './database/genre-csv';
 import { deleteUnusedGenres, upsertGenres } from './database/genre-repository';
+import { upsertCountries } from './database/country-repository';
+import { fetchTmdbCountries } from './database/tmdb-countries';
 import { openDatabase } from './database/schema';
 
 export const defaultDatabasePath = './data/movies.sqlite';
@@ -52,6 +54,26 @@ export function createCli(): Command {
       }
       console.log(
         `Removed ${deletedCount} unused genre(s) from ${databasePath}`,
+      );
+    });
+
+  program
+    .command('sync-countries')
+    .description('Synchronize countries from TMDB')
+    .action(async () => {
+      const { tmdbAccessToken } = await import('./utils/config');
+      const countries = await fetchTmdbCountries(tmdbAccessToken);
+      const options = program.opts<{ path: string }>();
+      const databasePath = resolve(options.path);
+      mkdirSync(dirname(databasePath), { recursive: true });
+      const database = openDatabase(databasePath);
+      try {
+        upsertCountries(database, countries);
+      } finally {
+        database.close();
+      }
+      console.log(
+        `Synchronized ${countries.length} country/countries into ${databasePath}`,
       );
     });
 
