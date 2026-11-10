@@ -44,6 +44,18 @@ Les paramètres par défaut sont la langue `fr-FR`, la région `FR` et la premi�
 
 Le serveur Express écoute sur le port `3000`. Vite sert l'interface sur le port `5173` et transmet les requêtes `/api` au serveur Express.
 
+## Gestion des genres
+
+Initialisez la base puis importez les genres depuis un fichier CSV contenant les colonnes `id` et `name` :
+
+```sh
+node src/back-end/backend-cli.ts add-genres ./data/genres.csv
+node src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite add-genres ./data/genres.csv
+node src/back-end/backend-cli.ts clean-genres
+```
+
+La commande `clean-genres` supprime uniquement les genres qui ne sont associés à aucun film.
+
 ## API locale
 
 | Méthode | Route                 | Description                                                       |
