@@ -28,6 +28,7 @@ const mockTmdbMovieDetails: TmdbMovieDetails = {
     { id: 28, name: 'Action' },
     { id: 12, name: 'Adventure' },
   ],
+  production_countries: [{ iso_3166_1: 'FR', name: 'France' }],
   id: 12345,
   original_language: 'en',
   original_title: 'Original Title',
