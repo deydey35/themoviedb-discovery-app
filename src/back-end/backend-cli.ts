@@ -5,7 +5,11 @@ import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 import { parseGenresCsv } from './database/genre-csv';
 import { deleteUnusedGenres, upsertGenres } from './database/genre-repository';
-import { upsertCountries } from './database/country-repository';
+import {
+  deleteUnusedCountries,
+  upsertCountries,
+} from './database/country-repository';
+import { parseCountriesCsv } from './database/country-csv';
 import { fetchTmdbCountries } from './database/tmdb-countries';
 import { openDatabase } from './database/schema';
 
@@ -54,6 +58,43 @@ export function createCli(): Command {
       }
       console.log(
         `Removed ${deletedCount} unused genre(s) from ${databasePath}`,
+      );
+    });
+
+  program
+    .command('add-countries <csv-file>')
+    .description('Import countries from a CSV file')
+    .action(async (csvFile: string) => {
+      const countries = parseCountriesCsv(await readFile(csvFile, 'utf8'));
+      const options = program.opts<{ path: string }>();
+      const databasePath = resolve(options.path);
+      mkdirSync(dirname(databasePath), { recursive: true });
+      const database = openDatabase(databasePath);
+      try {
+        upsertCountries(database, countries);
+      } finally {
+        database.close();
+      }
+      console.log(
+        `Imported ${countries.length} country/countries into ${databasePath}`,
+      );
+    });
+
+  program
+    .command('clean-countries')
+    .description('Remove countries not associated with a film')
+    .action(() => {
+      const options = program.opts<{ path: string }>();
+      const databasePath = resolve(options.path);
+      const database = openDatabase(databasePath);
+      let deletedCount: number;
+      try {
+        deletedCount = deleteUnusedCountries(database);
+      } finally {
+        database.close();
+      }
+      console.log(
+        `Removed ${deletedCount} unused country/countries from ${databasePath}`,
       );
     });
 

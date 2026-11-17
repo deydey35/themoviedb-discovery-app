@@ -37,17 +37,17 @@ export function syncMovieProductionCountries(
       );
 
     const upsertCountry = database.prepare(`
-      INSERT INTO production_countries (code, name)
+      INSERT INTO countries (code, name)
       VALUES (?, ?)
       ON CONFLICT (code) DO UPDATE SET name = excluded.name
     `);
     const insertAssociation = database.prepare(`
-      INSERT INTO movie_production_countries (movie_id, country_code)
+      INSERT INTO production_countries (movie_id, country_code)
       VALUES (?, ?)
     `);
 
     database
-      .prepare('DELETE FROM movie_production_countries WHERE movie_id = ?')
+      .prepare('DELETE FROM production_countries WHERE movie_id = ?')
       .run(movie.id);
 
     for (const country of movie.production_countries) {

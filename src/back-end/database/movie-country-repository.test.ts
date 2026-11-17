@@ -43,15 +43,11 @@ describe('movie country repository', () => {
     });
     expect(
       database
-        .prepare(
-          'SELECT movie_id, country_code FROM movie_production_countries',
-        )
+        .prepare('SELECT movie_id, country_code FROM production_countries')
         .all(),
     ).toEqual([{ movie_id: 42, country_code: 'US' }]);
     expect(
-      database
-        .prepare('SELECT code, name FROM production_countries ORDER BY code')
-        .all(),
+      database.prepare('SELECT code, name FROM countries ORDER BY code').all(),
     ).toEqual([
       { code: 'FR', name: 'France' },
       { code: 'US', name: 'United States' },
@@ -70,10 +66,31 @@ describe('movie country repository', () => {
     syncMovieProductionCountries(database, createMovie([]));
 
     expect(
-      database
-        .prepare('SELECT country_code FROM movie_production_countries')
-        .all(),
+      database.prepare('SELECT country_code FROM production_countries').all(),
     ).toEqual([]);
+    database.close();
+  });
+
+  it('rolls back movie and country changes when an association fails', () => {
+    const database = new DatabaseSync(':memory:');
+    initializeSchema(database);
+    database.exec(`
+      CREATE TRIGGER reject_country_association
+      BEFORE INSERT ON production_countries
+      BEGIN
+        SELECT RAISE(ABORT, 'country association rejected');
+      END;
+    `);
+
+    expect(() =>
+      syncMovieProductionCountries(
+        database,
+        createMovie([{ iso_3166_1: 'FR', name: 'France' }]),
+      ),
+    ).toThrow('country association rejected');
+    expect(database.prepare('SELECT id FROM films').all()).toEqual([]);
+    expect(database.prepare('SELECT code FROM countries').all()).toEqual([]);
+    expect(() => database.exec('ROLLBACK')).toThrow();
     database.close();
   });
 });

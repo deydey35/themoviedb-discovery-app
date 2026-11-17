@@ -24,8 +24,8 @@ describe('SQLite schema', () => {
         { name: 'movie_observations' },
         { name: 'genres' },
         { name: 'movie_genres' },
+        { name: 'countries' },
         { name: 'production_countries' },
-        { name: 'movie_production_countries' },
       ]),
     );
     expect(database.prepare('SELECT release_year FROM films').get()).toEqual({
@@ -36,6 +36,46 @@ describe('SQLite schema', () => {
         'INSERT INTO movie_genres (movie_id, genre_id) VALUES (1, 10)',
       ),
     ).toThrow();
+  });
+
+  it('migrates legacy country tables without losing countries or associations', () => {
+    const database = new DatabaseSync(':memory:');
+    database.exec(`
+      PRAGMA foreign_keys = ON;
+      CREATE TABLE films (id INTEGER PRIMARY KEY);
+      CREATE TABLE production_countries (
+        code TEXT PRIMARY KEY,
+        name TEXT NOT NULL
+      );
+      CREATE TABLE movie_production_countries (
+        movie_id INTEGER NOT NULL REFERENCES films (id) ON DELETE CASCADE,
+        country_code TEXT NOT NULL REFERENCES production_countries (code) ON DELETE RESTRICT,
+        PRIMARY KEY (movie_id, country_code)
+      );
+      INSERT INTO films (id) VALUES (1);
+      INSERT INTO production_countries (code, name) VALUES ('FR', 'France');
+      INSERT INTO movie_production_countries (movie_id, country_code)
+      VALUES (1, 'FR');
+    `);
+
+    initializeSchema(database);
+
+    expect(database.prepare('SELECT code, name FROM countries').all()).toEqual([
+      { code: 'FR', name: 'France' },
+    ]);
+    expect(
+      database
+        .prepare('SELECT movie_id, country_code FROM production_countries')
+        .all(),
+    ).toEqual([{ movie_id: 1, country_code: 'FR' }]);
+    expect(
+      database.prepare('PRAGMA foreign_key_list(production_countries)').all(),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ table: 'countries', from: 'country_code' }),
+      ]),
+    );
+    database.close();
   });
 
   it('enforces foreign keys and positive observation values', () => {

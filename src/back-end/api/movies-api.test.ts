@@ -209,13 +209,11 @@ describe('movies API', () => {
       expect(toSupportedMovieDetailsMock).toHaveBeenCalledWith(rawData);
       expect(response.json).toHaveBeenCalledWith(supportedDetails);
       expect(
-        database.prepare('SELECT code, name FROM production_countries').all(),
+        database.prepare('SELECT code, name FROM countries').all(),
       ).toEqual([{ code: 'FR', name: 'France' }]);
       expect(
         database
-          .prepare(
-            'SELECT movie_id, country_code FROM movie_production_countries',
-          )
+          .prepare('SELECT movie_id, country_code FROM production_countries')
           .all(),
       ).toEqual([{ movie_id: 42, country_code: 'FR' }]);
     });

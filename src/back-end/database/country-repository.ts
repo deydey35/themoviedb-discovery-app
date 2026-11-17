@@ -18,14 +18,14 @@ export function findCountryByCode(
   code: string,
 ): Country | undefined {
   const row = database
-    .prepare('SELECT code, name FROM production_countries WHERE code = ?')
+    .prepare('SELECT code, name FROM countries WHERE code = ?')
     .get(code);
   return row === undefined ? undefined : toCountry(row);
 }
 
 export function listCountries(database: DatabaseSync): Country[] {
   const rows = database
-    .prepare('SELECT code, name FROM production_countries ORDER BY code ASC')
+    .prepare('SELECT code, name FROM countries ORDER BY code ASC')
     .all();
   return rows.map(toCountry);
 }
@@ -37,7 +37,7 @@ export function upsertCountries(
   database.exec('BEGIN');
   try {
     const statement = database.prepare(`
-      INSERT INTO production_countries (code, name)
+      INSERT INTO countries (code, name)
       VALUES (?, ?)
       ON CONFLICT (code) DO UPDATE SET name = excluded.name
     `);
@@ -47,6 +47,26 @@ export function upsertCountries(
     }
 
     database.exec('COMMIT');
+  } catch (error) {
+    database.exec('ROLLBACK');
+    throw error;
+  }
+}
+
+export function deleteUnusedCountries(database: DatabaseSync): number {
+  database.exec('BEGIN');
+  try {
+    const result = database
+      .prepare(`
+        DELETE FROM countries
+        WHERE NOT EXISTS (
+          SELECT 1 FROM production_countries
+          WHERE production_countries.country_code = countries.code
+        )
+      `)
+      .run();
+    database.exec('COMMIT');
+    return Number(result.changes);
   } catch (error) {
     database.exec('ROLLBACK');
     throw error;

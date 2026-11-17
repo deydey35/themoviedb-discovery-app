@@ -49,23 +49,32 @@ Le serveur Express écoute sur le port `3000`. Vite sert l'interface sur le port
 Initialisez la base puis importez les genres depuis un fichier CSV contenant les colonnes `id` et `name` :
 
 ```sh
-node src/back-end/backend-cli.ts add-genres ./data/genres.csv
-node src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite add-genres ./data/genres.csv
-node src/back-end/backend-cli.ts clean-genres
+npx tsx src/back-end/backend-cli.ts add-genres ./data/genres.csv
+npx tsx src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite add-genres ./data/genres.csv
+npx tsx src/back-end/backend-cli.ts clean-genres
 ```
 
 La commande `clean-genres` supprime uniquement les genres qui ne sont associés à aucun film.
 
 ## Gestion des pays
 
-Synchronisez le référentiel des pays depuis TMDB dans `production_countries` :
+Importez ou actualisez le référentiel `countries` depuis un fichier CSV contenant exactement les colonnes `code` et `name` :
 
 ```sh
-node src/back-end/backend-cli.ts sync-countries
-node src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite sync-countries
+npx tsx src/back-end/backend-cli.ts add-countries ./data/countries.csv
+npx tsx src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite add-countries ./data/countries.csv
+npx tsx src/back-end/backend-cli.ts clean-countries
+npx tsx src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite clean-countries
 ```
 
-Cette commande utilise le jeton TMDB du fichier `.env`; aucun CSV de pays n'est nécessaire.
+`clean-countries` supprime uniquement les pays qui ne sont associés à aucun film dans la table de liaison `production_countries`. Vous pouvez également synchroniser le référentiel depuis TMDB :
+
+```sh
+npx tsx src/back-end/backend-cli.ts sync-countries
+npx tsx src/back-end/backend-cli.ts --path ./data/custom-movies.sqlite sync-countries
+```
+
+La synchronisation TMDB utilise le jeton du fichier `.env`.
 
 ## API locale
 

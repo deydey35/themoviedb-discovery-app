@@ -74,6 +74,100 @@ describe('backend CLI', () => {
     rmSync(directory, { recursive: true, force: true });
   });
 
+  it('imports and updates countries in a selected database without duplicates', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'movies-cli-'));
+    const databasePath = join(directory, 'custom.sqlite');
+    const csvPath = join(directory, 'countries.csv');
+    const database = openDatabase(databasePath);
+    database.exec(
+      "INSERT INTO countries (code, name) VALUES ('FR', 'Old name')",
+    );
+    database.close();
+    writeFileSync(csvPath, 'code,name\nFR,France\nUS,United States\n');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const close = vi.spyOn(DatabaseSync.prototype, 'close');
+
+    await runCli([
+      'node',
+      'backend-cli',
+      '--path',
+      databasePath,
+      'add-countries',
+      csvPath,
+    ]);
+
+    expect(close).toHaveBeenCalledOnce();
+    close.mockRestore();
+    const imported = new DatabaseSync(databasePath);
+    expect(
+      imported.prepare('SELECT code, name FROM countries ORDER BY code').all(),
+    ).toEqual([
+      { code: 'FR', name: 'France' },
+      { code: 'US', name: 'United States' },
+    ]);
+    imported.close();
+    expect(log).toHaveBeenCalledWith(
+      `Imported 2 country/countries into ${databasePath}`,
+    );
+    log.mockRestore();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  it('validates countries before opening the database', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'movies-cli-'));
+    const csvPath = join(directory, 'invalid.csv');
+    const databasePath = join(directory, 'not-a-database');
+    writeFileSync(csvPath, 'invalid,name\nFR,France\n');
+
+    await expect(
+      runCli([
+        'node',
+        'backend-cli',
+        '--path',
+        databasePath,
+        'add-countries',
+        csvPath,
+      ]),
+    ).rejects.toThrow('expected code and name');
+    expect(existsSync(databasePath)).toBe(false);
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  it('rolls back a failed country import, closes the database, and propagates the error', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'movies-cli-'));
+    const databasePath = join(directory, 'custom.sqlite');
+    const csvPath = join(directory, 'countries.csv');
+    const database = openDatabase(databasePath);
+    database.exec(`
+      CREATE TRIGGER reject_us BEFORE INSERT ON countries
+      WHEN NEW.code = 'US'
+      BEGIN
+        SELECT RAISE(ABORT, 'country import rejected');
+      END;
+    `);
+    database.close();
+    writeFileSync(csvPath, 'code,name\nFR,France\nUS,United States\n');
+    const close = vi.spyOn(DatabaseSync.prototype, 'close');
+
+    await expect(
+      runCli([
+        'node',
+        'backend-cli',
+        '--path',
+        databasePath,
+        'add-countries',
+        csvPath,
+      ]),
+    ).rejects.toThrow('country import rejected');
+
+    expect(close).toHaveBeenCalledOnce();
+    close.mockRestore();
+    const check = new DatabaseSync(databasePath);
+    expect(check.prepare('SELECT code FROM countries').all()).toEqual([]);
+    check.close();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
   it('synchronizes countries from TMDB into a selected database', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'movies-cli-'));
     const databasePath = join(directory, 'custom.sqlite');
@@ -99,9 +193,7 @@ describe('backend CLI', () => {
 
     const database = new DatabaseSync(databasePath);
     expect(
-      database
-        .prepare('SELECT code, name FROM production_countries ORDER BY code')
-        .all(),
+      database.prepare('SELECT code, name FROM countries ORDER BY code').all(),
     ).toEqual([
       { code: 'FR', name: 'France' },
       { code: 'US', name: 'United States' },
@@ -135,12 +227,51 @@ describe('backend CLI', () => {
       'clean-genres',
     ]);
 
-    const remaining = new DatabaseSync(databasePath)
+    const remainingDatabase = new DatabaseSync(databasePath);
+    const remaining = remainingDatabase
       .prepare('SELECT id, name FROM genres')
       .all();
     expect(remaining).toEqual([{ id: 10, name: 'Used' }]);
+    remainingDatabase.close();
     expect(log).toHaveBeenCalledWith(
       `Removed 1 unused genre(s) from ${databasePath}`,
+    );
+    log.mockRestore();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  it('cleans only countries without a movie association and reports the result', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'movies-cli-'));
+    const databasePath = join(directory, 'custom.sqlite');
+    const database = openDatabase(databasePath);
+    database.exec(`
+      INSERT INTO countries (code, name)
+      VALUES ('FR', 'France'), ('US', 'United States');
+      INSERT INTO films (id, title, original_title) VALUES (1, 'Film', 'Movie');
+      INSERT INTO production_countries (movie_id, country_code) VALUES (1, 'FR');
+    `);
+    database.close();
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const close = vi.spyOn(DatabaseSync.prototype, 'close');
+
+    await runCli([
+      'node',
+      'backend-cli',
+      '--path',
+      databasePath,
+      'clean-countries',
+    ]);
+
+    expect(close).toHaveBeenCalledOnce();
+    close.mockRestore();
+    const remainingDatabase = new DatabaseSync(databasePath);
+    const remaining = remainingDatabase
+      .prepare('SELECT code, name FROM countries')
+      .all();
+    expect(remaining).toEqual([{ code: 'FR', name: 'France' }]);
+    remainingDatabase.close();
+    expect(log).toHaveBeenCalledWith(
+      `Removed 1 unused country/countries from ${databasePath}`,
     );
     log.mockRestore();
     rmSync(directory, { recursive: true, force: true });

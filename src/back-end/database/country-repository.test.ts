@@ -4,6 +4,7 @@ import {
   findCountryByCode,
   listCountries,
   type Country,
+  deleteUnusedCountries,
   upsertCountries,
 } from './country-repository';
 import { initializeSchema } from './schema';
@@ -17,9 +18,7 @@ function createDatabase(): DatabaseSync {
 describe('country repository', () => {
   it('finds an existing country and returns undefined for an unknown code', () => {
     const database = createDatabase();
-    database.exec(
-      "INSERT INTO production_countries (code, name) VALUES ('FR', 'France')",
-    );
+    database.exec("INSERT INTO countries (code, name) VALUES ('FR', 'France')");
 
     expect(findCountryByCode(database, 'FR')).toEqual({
       code: 'FR',
@@ -78,6 +77,37 @@ describe('country repository', () => {
       { code: 'FR', name: 'République française' },
       { code: 'US', name: 'United States' },
     ]);
+    database.close();
+  });
+
+  it('deletes only countries without a movie association', () => {
+    const database = createDatabase();
+    upsertCountries(database, [
+      { code: 'FR', name: 'France' },
+      { code: 'US', name: 'United States' },
+    ]);
+    database.exec(`
+      INSERT INTO films (id, title, original_title) VALUES (1, 'Film', 'Movie');
+      INSERT INTO production_countries (movie_id, country_code) VALUES (1, 'FR');
+    `);
+
+    expect(deleteUnusedCountries(database)).toBe(1);
+    expect(listCountries(database)).toEqual([{ code: 'FR', name: 'France' }]);
+    database.close();
+  });
+
+  it('rejects malformed rows and rolls back cleanup errors', () => {
+    const database = createDatabase();
+    database.exec(`
+      DROP TABLE production_countries;
+      DROP TABLE countries;
+      CREATE TABLE countries (code INTEGER, name INTEGER);
+      INSERT INTO countries (code, name) VALUES (1, 10);
+    `);
+
+    expect(() => listCountries(database)).toThrow('Invalid country row');
+    expect(() => deleteUnusedCountries(database)).toThrow();
+    expect(() => database.exec('ROLLBACK')).toThrow();
     database.close();
   });
 });
