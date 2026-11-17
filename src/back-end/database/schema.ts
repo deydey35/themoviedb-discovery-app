@@ -44,17 +44,30 @@ export const schemaSql = `
     PRIMARY KEY (movie_id, genre_id)
   );
 
-  CREATE TABLE IF NOT EXISTS production_countries (
+  CREATE TABLE IF NOT EXISTS countries (
     code TEXT PRIMARY KEY,
     name TEXT NOT NULL CHECK (length(trim(name)) > 0)
   );
 
-  CREATE TABLE IF NOT EXISTS movie_production_countries (
+  CREATE TABLE IF NOT EXISTS production_countries (
     movie_id INTEGER NOT NULL REFERENCES films (id) ON DELETE CASCADE,
-    country_code TEXT NOT NULL REFERENCES production_countries (code) ON DELETE RESTRICT,
+    country_code TEXT NOT NULL REFERENCES countries (code) ON DELETE RESTRICT,
     PRIMARY KEY (movie_id, country_code)
   );
 `;
+
+function migrateLegacyCountryTables(database: DatabaseSync): void {
+  const legacyAssociation = database
+    .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .get('movie_production_countries');
+
+  if (legacyAssociation !== undefined) {
+    database.exec('ALTER TABLE production_countries RENAME TO countries');
+    database.exec(
+      'ALTER TABLE movie_production_countries RENAME TO production_countries',
+    );
+  }
+}
 
 export function initializeSchema(
   database: DatabaseSync,
@@ -62,6 +75,7 @@ export function initializeSchema(
 ): void {
   database.exec('BEGIN');
   try {
+    migrateLegacyCountryTables(database);
     database.exec(sql);
     database.exec('COMMIT');
   } catch (error) {
